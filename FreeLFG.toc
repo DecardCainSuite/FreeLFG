@@ -4,6 +4,7 @@
 ## Category: Group
 ## Author: DecardCain
 ## Version: 1.0.18
+## X-Curse-Project-ID: 1798920
 ## IconTexture: Interface\AddOns\FreeLFG\Media\icon
 ## OptionalDeps: FreeHub, LibSharedMedia-3.0, SharedMediaAdditionalFonts
 ## SavedVariables: FreeLFGDB
