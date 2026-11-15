@@ -87,11 +87,21 @@ local function Hex(c)
     return string.format("|cff%02x%02x%02x", b(c[1]), b(c[2]), b(c[3]))
 end
 
-function ns.HideRowTooltip() if tip then tip:Hide() end end
+local shownOwner
+function ns.HideRowTooltip() shownOwner = nil; if tip then tip:Hide() end end
+
+-- the results changed while the tooltip is open (members' details often arrive a moment later): draw it again
+function ns.RefreshRowTooltip()
+    local o = shownOwner
+    if not (o and tip and tip:IsShown() and o.row and o.IsVisible and o:IsVisible()) then return end
+    if o.IsMouseOver and not o:IsMouseOver() then return end
+    pcall(ns.ShowRowTooltip, o, o.row)
+end
 
 function ns.ShowRowTooltip(owner, row)
     if not row then return end
     if not tip then Make() end
+    shownOwner = owner
     for i = 1, #fsPool do fsPool[i]:Hide() end
     for i = 1, #txPool do txPool[i]:Hide() end
     fsUsed, txUsed = 0, 0
@@ -161,14 +171,29 @@ function ns.ShowRowTooltip(owner, row)
     if row.newPlayer then kv("New players", Hex(GREEN) .. "welcome|r") end
 
     -- members, by role; then the open slots
-    local list = {}
+    -- Sometimes the game gives a member's level but not its name, class or role (seen on 15/11 in Zul'Farrak):
+    -- those members are still shown, one line per role from the role counts, as "member".
+    local list, nameless = {}, 0
     for i = 1, math.min(row.members or 0, 40) do
         local m = ns.MemberInfo and ns.MemberInfo(row.id, i)
-        if m and (m.class or m.role or m.name) then list[#list + 1] = m end
+        if m and (m.name or m.class) then list[#list + 1] = m else nameless = nameless + 1 end
+    end
+    if nameless > 0 then
+        local known = { TANK = 0, HEALER = 0, DAMAGER = 0 }
+        for _, m in ipairs(list) do if known[m.role] then known[m.role] = known[m.role] + 1 end end
+        local missing = { TANK = (row.tank or 0) - known.TANK, HEALER = (row.heal or 0) - known.HEALER, DAMAGER = (row.dps or 0) - known.DAMAGER }
+        for _, role in ipairs({ "TANK", "HEALER", "DAMAGER" }) do
+            for _ = 1, math.max(0, missing[role]) do
+                if nameless == 0 then break end
+                list[#list + 1] = { role = role, unknown = true }; nameless = nameless - 1
+            end
+        end
+        for _ = 1, nameless do list[#list + 1] = { unknown = true } end
     end
     table.sort(list, function(a, b)
         local ra, rb = ROLE_ORDER[a.role] or 4, ROLE_ORDER[b.role] or 4
         if ra ~= rb then return ra < rb end
+        if (a.unknown or false) ~= (b.unknown or false) then return not a.unknown end
         if a.isLeader ~= b.isLeader then return a.isLeader end
         return (a.name or "") < (b.name or "")
     end)
@@ -192,13 +217,19 @@ function ns.ShowRowTooltip(owner, row)
         for k, m in ipairs(list) do
             if k > MAX_MEMBERS then break end
             local bg, t = tag(m.role)
-            local name = m.name and m.name ~= "" and ns.Short(m.name) or (m.isLeader and row.leader) or nil
-            local nf = FS(13, { ns.ClassColor(m.class) })
-            nf:SetText((name or m.classLoc or m.class or "?") .. (m.isLeader and (" " .. LEADER_ICON) or ""))
-            local cf = FS(12, MUTED); cf:SetText(name and (m.classLoc or m.class or "") or "")
-            local lf = FS(12, MUTED); lf:SetText(m.level and tostring(m.level) or ""); lf:SetJustifyH("RIGHT")
-            nameW, classW = math.max(nameW, W(nf)), math.max(classW, W(cf))
-            mrows[#mrows + 1] = { bg, t, nf, cf, lf }
+            if m.unknown then
+                local nf = FS(13, MUTED); nf:SetText("member")
+                nameW = math.max(nameW, W(nf))
+                mrows[#mrows + 1] = { bg, t, nf }
+            else
+                local name = m.name and m.name ~= "" and ns.Short(m.name) or (m.isLeader and row.leader) or nil
+                local nf = FS(13, { ns.ClassColor(m.class) })
+                nf:SetText((name or m.classLoc or m.class or "?") .. (m.isLeader and (" " .. LEADER_ICON) or ""))
+                local cf = FS(12, MUTED); cf:SetText(name and (m.classLoc or m.class or "") or "")
+                local lf = FS(12, MUTED); lf:SetText(m.level and tostring(m.level) or ""); lf:SetJustifyH("RIGHT")
+                nameW, classW = math.max(nameW, W(nf)), math.max(classW, W(cf))
+                mrows[#mrows + 1] = { bg, t, nf, cf, lf }
+            end
         end
         for _, role in ipairs(open) do
             local bg, t = tag(role, true)

@@ -254,25 +254,54 @@ local function PlaystyleText(info)
 end
 
 -- one member: { name, class (token), classLoc, level, role (assigned), isLeader, lfgRoles = {tank,healer,dps}, area }
+-- The game does not always give everything (some fields can be missing or restricted): we keep what we get,
+-- and remember a few incomplete answers (FreeLFGDB.memberGaps) to see what the client really sends.
+local function First(t, ...)
+    for k = 1, select("#", ...) do
+        local v = S(t[select(k, ...)])
+        if v ~= nil and v ~= "" then return v end
+    end
+end
+local function RecordGap(id, i, t)
+    if not db then return end
+    local gaps = db.memberGaps
+    if type(gaps) ~= "table" then gaps = {}; db.memberGaps = gaps end
+    local keys = {}
+    for k, v in pairs(t) do
+        local secret = issecretvalue and issecretvalue(v)
+        keys[#keys + 1] = tostring(k) .. "=" .. (secret and "secret" or type(v) == "table" and "table" or tostring(v))
+    end
+    table.sort(keys)
+    table.insert(gaps, 1, { at = time and time() or 0, id = id, i = i, fields = table.concat(keys, ", ") })
+    for n = #gaps, 9, -1 do gaps[n] = nil end
+end
 local function MemberInfo(id, i)
     if not C_LFGList then return nil end
+    local m
     if C_LFGList.GetSearchResultPlayerInfo then
         local ok, t = pcall(C_LFGList.GetSearchResultPlayerInfo, id, i)
         if ok and type(t) == "table" then
-            local class = S(t.classFilename)
+            local class = First(t, "classFilename", "classFile", "class")
             local roles = S(t.lfgRoles)
-            return { name = S(t.name), class = class, classLoc = class and LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[class] or class,
-                     level = tonumber(S(t.level)), role = S(t.assignedRole), isLeader = S(t.isLeader) and true or false,
-                     lfgRoles = type(roles) == "table" and { tank = S(roles.tank) and true or false, healer = S(roles.healer) and true or false, dps = S(roles.dps) and true or false } or nil,
-                     area = S(t.areaName) }
+            m = { name = First(t, "name", "fullName"), class = class, classLoc = First(t, "className", "classLocalized"),
+                  level = tonumber(S(t.level)), role = First(t, "assignedRole", "role"), isLeader = S(t.isLeader) and true or false,
+                  lfgRoles = type(roles) == "table" and { tank = S(roles.tank) and true or false, healer = S(roles.healer) and true or false, dps = S(roles.dps) and true or false } or nil,
+                  area = S(t.areaName) }
+            if not m.name and not m.class then RecordGap(id, i, t) end
         end
-        return nil
     end
-    if C_LFGList.GetSearchResultMemberInfo then   -- older shape
+    if C_LFGList.GetSearchResultMemberInfo and (not m or not m.class or not m.role) then   -- older shape, also used to complete
         local ok, role, class, classLoc, spec, isLeader, _, level = pcall(C_LFGList.GetSearchResultMemberInfo, id, i)
-        if not ok then return nil end
-        return { role = S(role), class = S(class), classLoc = S(classLoc), spec = S(spec), isLeader = S(isLeader) and true or false, level = tonumber(S(level)) }
+        if ok and (S(role) or S(class)) then
+            m = m or { isLeader = S(isLeader) and true or false }
+            m.role = m.role or S(role); m.class = m.class or S(class); m.classLoc = m.classLoc or S(classLoc)
+            m.spec = m.spec or S(spec); m.level = m.level or tonumber(S(level))
+        end
     end
+    if m and m.class and not m.classLoc then
+        m.classLoc = LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[m.class] or m.class
+    end
+    return m
 end
 ns.MemberInfo = MemberInfo
 
@@ -423,6 +452,7 @@ function ns.ReadResults()
     ns.searching = false
     ns.dirty = false
     if ns.OnData then ns.OnData() end
+    if ns.RefreshRowTooltip then ns.RefreshRowTooltip() end
 end
 
 -- ------------------------------------------------------------ search (only from a click)
@@ -757,6 +787,11 @@ SlashCmdList.FREELFG = function(msg)
         ns.Print("Filter examples: (heal >= 1 or tank >= 1) and dps <= 1   |   dps in 1..2   |   dungeon:\"razor\"")
     elseif msg == "tabs" then
         if ns.DebugTabs then ns.DebugTabs() end
+    elseif msg == "members" then
+        local gaps = db and db.memberGaps
+        if type(gaps) ~= "table" or #gaps == 0 then ns.Print("no incomplete member info recorded.") return end
+        ns.Print(#gaps .. " incomplete member answer(s), newest first:")
+        for _, g in ipairs(gaps) do ns.Print(string.format("result %s, member %s: %s", tostring(g.id), tostring(g.i), g.fields or "?")) end
     elseif ns.Toggle then ns.Toggle() end
 end
 function FreeLFG_Toggle() if ns.Toggle then ns.Toggle() end end

@@ -1,5 +1,5 @@
-## Free LFG 1.0.19
+## Free LFG 1.0.20
 
-- "Searching..." no longer stays in the footer once the results are in.
-- Changing the category clears the results of the previous one until you press Refresh.
-- The Custom message preview no longer shows a `/w` command (names with a space are always handled by the game's whisper box).
+- Group tooltip: members whose name and class the game has not sent yet are no longer missing. They are shown as "member" under their role (from the group's role counts), next to the open slots.
+- The tooltip redraws itself when the game sends the members' details while it is open.
+- New `/flfg members` command: lists the member data the game left incomplete (helps with bug reports).
