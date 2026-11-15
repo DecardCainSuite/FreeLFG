@@ -171,11 +171,14 @@ function ns.ShowRowTooltip(owner, row)
     if row.newPlayer then kv("New players", Hex(GREEN) .. "welcome|r") end
 
     -- members, by role; then the open slots
-    -- Sometimes the game gives a member's level but not its name, class or role (seen on 15/11 in Zul'Farrak):
-    -- those members are still shown, one line per role from the role counts, as "member".
+    -- The game does not always answer again on hover (seen on 15/11 in Zul'Farrak): use what was read with the
+    -- results, and fill the gaps from the role counts ("member" lines) when even that is missing.
     local list, nameless = {}, 0
+    local cached = type(row.memberInfo) == "table" and row.memberInfo or {}
     for i = 1, math.min(row.members or 0, 40) do
         local m = ns.MemberInfo and ns.MemberInfo(row.id, i)
+        local c = cached[i]
+        if c and (not m or (not m.name and not m.class)) then m = c end
         if m and (m.name or m.class) then list[#list + 1] = m else nameless = nameless + 1 end
     end
     if nameless > 0 then

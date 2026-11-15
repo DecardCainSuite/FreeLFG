@@ -385,8 +385,10 @@ local function BuildRow(id, idx)
     r.mine = S(info.hasSelf) and true or false
     -- members: member 1 is the leader (class, level); a solo listing says which roles the player takes
     local m1
+    r.memberInfo = {}      -- kept for the tooltip: the game does not always answer again on hover
     for i = 1, math.min(r.members, 40) do
         local m = MemberInfo(id, i)
+        r.memberInfo[i] = m or false
         if m then
             if i == 1 or m.isLeader then
                 if not m1 or m.isLeader then m1 = m end
