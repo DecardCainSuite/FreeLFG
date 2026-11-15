@@ -1,0 +1,4 @@
+package-as: FreeLFG
+
+ignore:
+  - README.md

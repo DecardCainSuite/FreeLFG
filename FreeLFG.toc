@@ -1,0 +1,23 @@
+## Interface: 16001
+## Title: Free LFG
+## Notes: A sortable, filterable table for the group finder: leader, roles, free slots, one-click whisper from a template, live filters like (heal >= 1 or tank >= 1) and dps <= 1. /flfg
+## Category: Group
+## Author: DecardCain
+## Version: 1.0.18
+## IconTexture: Interface\AddOns\FreeLFG\Media\icon
+## OptionalDeps: FreeHub, LibSharedMedia-3.0, SharedMediaAdditionalFonts
+## SavedVariables: FreeLFGDB
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+Libs\LibFreeProfiles-1.0\LibFreeProfiles-1.0.lua
+Libs\LibFreeMedia-1.0\LibFreeMedia-1.0.lua
+Libs\LibFreeUI-1.0\LibFreeUI-1.0.lua
+
+Filter.lua
+Core.lua
+Tooltip.lua
+UI.lua
+Minimap.lua
