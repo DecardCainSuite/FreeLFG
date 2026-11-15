@@ -148,7 +148,13 @@ local function Build()
     end
     local catDD = kit:Dropdown(p, nil, PAD, -4, 170, CatItems,
         function() return ns.CurrentCategory() or 0 end,
-        function(v) ns.cat = v; ns.P().activitySel = {}; kit:Refresh() end, 0)
+        function(v)
+            if v ~= ns.CurrentCategory() then   -- results of the old category no longer apply: wait for a new search
+                for i = #ns.rows, 1, -1 do ns.rows[i] = nil end
+                ns.total, ns.lastRead, ns.failed = 0, nil, false
+            end
+            ns.cat = v; ns.P().activitySel = {}; kit:Refresh()
+        end, 0)
     catDD:ClearAllPoints(); catDD:SetPoint("TOPLEFT", PAD, -4); kit.flow[#kit.flow] = nil
 
     local function ActItems()
@@ -544,7 +550,7 @@ local function Build()
         if not cbox:HasFocus() and (cbox:GetText() or "") ~= (P().customStart or "") then
             cbox.syncing = true; cbox:SetText(P().customStart or ""); cbox.syncing = false
         end
-        cprev:SetText("Custom opens: |cffffffff/w Leader " .. ns.ExpandTemplate(P().customStart or "", ns.SampleRow()) .. "|r...  you type the rest.")
+        cprev:SetText("Custom opens a whisper to the leader: |cffffffff" .. ns.ExpandTemplate(P().customStart or "", ns.SampleRow()) .. "|r...  you type the rest.")
     end)
 
     kit:OnRefresh(function()
@@ -646,12 +652,12 @@ function ns.ApplyScale()
     if not f then return end
     if f.fhEmbedded then f:SetScale(1) else f:SetScale(tonumber(ns.P().scale) or 1) end
 end
-ns.OnData = function() kit:Refresh() end
 ns.OnChanged = function()
     -- results arrived (or the search failed): drop the "Searching..." line
     if not ns.searching and statusText == "Searching..." then statusText = nil end
     kit:Refresh()
 end
+ns.OnData = ns.OnChanged
 ns.OnProfileChanged = function() ReapplyFonts(); ns.ApplyScale(); kit:Refresh() end
 
 local inHub = kit:RegisterHub("FreeLFG", DoBuild, function(show) if ns.ApplyMinimapVisibility then ns.ApplyMinimapVisibility(show) end end)

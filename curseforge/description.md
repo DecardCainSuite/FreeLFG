@@ -36,7 +36,7 @@ A readable Looking For Group window for WoW Forever: one compact table instead o
 
 A box above the table filters the rows **instantly**. It only changes what the table shows, never the game's search.
 
-- Variables: `tank`, `heal`, `dps` (in the group), `tankfree`, `healfree`, `dpsfree` (open slots per role), `members`, `free`, `level`, `age` (minutes).
+- Variables: `tank`, `heal`, `dps` (in the group), `tankfree`, `healfree`, `dpsfree` (open slots per role), `members`, `free`, `level`, `age` (minutes), `solo` and `delisted` (1 or 0).
 - Comparisons: `>= <= > < = !=`, ranges `dps in 1..2`, `1 <= dps <= 2`, `dps between 1 and 2`.
 - Combine with `and` / `or` / `not` (or `&&` `||` `!`) and parentheses. Example: `(heal >= 1 or tank >= 1) and dps <= 1`
 - Text: `name:"abc"`, `dungeon:"razor"`, `comment:"fast"`, `class:"mage"`, `state:"relaxed"`.
@@ -49,13 +49,15 @@ The **Msg** button whispers the leader with your template. Default: `{class} {le
 
 - Wildcards: `{class}` `{level}` `{role}` `{dungeon}` `{leader}` `{spec}`. A preview shows the result as you type.
 - At most one message per second, so a double click does not send twice.
-- **Invite** appears for solo players looking for a group (when you are alone or the leader of your group). Groups are contacted with Msg.
+- **Custom** opens a whisper to the leader that already starts with your own beginning (default `{class} {level} `, same wildcards): type the rest and press Enter.
+- **Invite** works for solo players looking for a group (when you are alone or the leader of your group). Groups are contacted with Msg.
 
 ## Options
 
+- Message template and the beginning of the Custom message.
 - Window scale, font (any LibSharedMedia font), font size, outline, row height, visible columns, default category.
 - Profiles: each character has its own by default; copy, reset, export and import as text.
-- Optional "Open FreeLFG" button on the game's finder window, and a minimap button.
+- Optional side tab on the game's group finder window that opens Free LFG, and a minimap button.
 
 ## Commands
 
@@ -71,5 +73,5 @@ Free LFG works on its own. With **Free Hub** installed, it opens inside the hub 
 ## Notes
 
 - Built for WoW Forever. The game only lets an addon start a search from a click, so searching is always done with the **Refresh** button.
-- Free LFG never touches the game's frames and does not change how the game's finder works.
+- Free LFG does not change how the game's finder works: it only reads its results and adds an optional side tab to its window.
 - Bug reports and ideas are welcome in the comments.

@@ -6,4 +6,3 @@ Newest first. Each release's notes come from `CHANGELOG.md` at the time it was p
 
 - First release: the group finder as a compact, sortable table, live filters, one-click whisper from a template, **Custom** message start, invite for solo players, detailed tooltip with members and roles.
 
-Older versions: see the file list on CurseForge.
