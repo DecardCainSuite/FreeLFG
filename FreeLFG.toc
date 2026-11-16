@@ -3,7 +3,7 @@
 ## Notes: A sortable, filterable table for the group finder: leader, roles, free slots, one-click whisper from a template, live filters like (heal >= 1 or tank >= 1) and dps <= 1. /flfg
 ## Category: Group
 ## Author: DecardCain
-## Version: 1.0.19
+## Version: 1.0.20
 ## X-Curse-Project-ID: 1798920
 ## IconTexture: Interface\AddOns\FreeLFG\Media\icon
 ## OptionalDeps: FreeHub, LibSharedMedia-3.0, SharedMediaAdditionalFonts
