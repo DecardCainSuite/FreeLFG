@@ -1,7 +1,7 @@
 <p align="center"><img src="curseforge/images/FreeLFG-logo-400.png" width="120" alt="Free LFG logo"></p>
 <h1 align="center">Free LFG</h1>
 <p align="center">The group finder as a compact, sortable table: leader, roles, free slots, one-click whisper from a template, and live filters you write yourself.</p>
-<p align="center"><a href="https://www.curseforge.com/wow/addons/freelfg"><b>Download on CurseForge</b></a> · version <b>1.0.19</b> · WoW Forever (1.60.1) · <code>/flfg</code></p>
+<p align="center"><a href="https://www.curseforge.com/wow/addons/freelfg"><b>Download on CurseForge</b></a> · version <b>1.0.20</b> · WoW Forever (1.60.1) · <code>/flfg</code></p>
 
 ![Free LFG](curseforge/images/flfg_1.png)
 
