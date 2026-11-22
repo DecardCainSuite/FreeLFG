@@ -1,5 +1,4 @@
-## Free LFG 1.0.20
+## Free LFG 1.0.21
 
-- Group tooltip: the members no longer disappear when the game does not answer again on hover. Free LFG keeps the members it read with the search results, and shows any member still unknown as "member" under its role, next to the open slots.
-- The tooltip redraws itself when the game sends new details while it is open.
-- New `/flfg members` command: lists the member data the game left incomplete (helps with bug reports).
+- Next to the Msg / Custom / Invite buttons, the table now shows when you last whispered that leader: "42s ago", then "3m 07s ago", "14m ago", "1h05 ago". It counts Msg and any whisper you send yourself (Custom included), ticks every second, and is kept across /reload for 3 hours.
+- The group tooltip shows the same line ("Already whispered ... ago") under your message.

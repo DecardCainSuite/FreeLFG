@@ -323,6 +323,8 @@ local function Build()
             elseif res ~= "wait" then Status(res, true) end
         end)
         r.inv.tip = "Invite a solo player."
+        -- "sent 3m 07s ago": my last whisper to this leader (Msg, or Custom once sent), 1.0.21
+        r.sent = TText(r, -1, C.accent)
         r:SetScript("OnEnter", function(s) s.hl:Show(); RowTooltip(s) end)
         r:SetScript("OnLeave", function(s) s.hl:Hide(); GameTooltip:Hide(); if ns.HideRowTooltip then ns.HideRowTooltip() end end)
         return r
@@ -381,6 +383,8 @@ local function Build()
         r.msg:ClearAllPoints(); r.cus:ClearAllPoints(); r.inv:ClearAllPoints()
         r.msg:SetShown(A and true or false); r.cus:SetShown(A and true or false); r.inv:SetShown(A and true or false)
         if A then r.msg:SetPoint("LEFT", A.x, 0); r.cus:SetPoint("LEFT", A.x + 48, 0); r.inv:SetPoint("LEFT", A.x + 108, 0) end
+        r.sent:ClearAllPoints(); r.sent:SetShown(A and true or false)
+        if A then r.sent:SetPoint("LEFT", A.x + 168, 0); r.sent:SetWidth(math.max(10, A.w - 172)) end
     end
 
     local empty = kit:Text(list, 13, C.muted); empty:SetPoint("CENTER", 0, -10)
@@ -436,6 +440,8 @@ local function Build()
                 r.inv:SetEnabled(can and true or false)
                 r.inv.tip = why
                 r.inv.__why = why
+                local ago = ns.SentAgo(row.leaderFull)
+                r.sent:SetText(ago and (ns.SentText(ago) .. " ago") or "")
                 r:Show()
             else
                 r:Hide()
@@ -476,6 +482,19 @@ local function Build()
     list:EnableMouseWheel(true)
     list:SetScript("OnMouseWheel", function(_, d) offset = offset - d * 3; kit:Refresh() end)
     list:SetScript("OnSizeChanged", function() kit:Refresh() end)
+    -- keep the "sent ... ago" labels ticking without redrawing the whole table
+    local sentTick = 0
+    list:SetScript("OnUpdate", function(_, el)
+        sentTick = sentTick + (el or 0)
+        if sentTick < 1 then return end
+        sentTick = 0
+        for _, r in ipairs(rows) do
+            if r.row and r:IsShown() then
+                local ago = ns.SentAgo(r.row.leaderFull)
+                r.sent:SetText(ago and (ns.SentText(ago) .. " ago") or "")
+            end
+        end
+    end)
     kit:OnRefresh(Render)
     kit.onResize[#kit.onResize + 1] = function() kit:Refresh() end
     ns.RenderTable = Render

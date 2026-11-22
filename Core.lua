@@ -39,7 +39,7 @@ ns.COLUMNS = {   -- key, label, default width (0 = takes the room left), default
     { key = "state", label = "State", w = 84 },
     { key = "age", label = "Listed", w = 58 },
     { key = "comment", label = "Comment", w = 0 },
-    { key = "actions", label = "", w = 166 },
+    { key = "actions", label = "", w = 236 },   -- Msg / Custom / Invite + "sent ... ago" (1.0.21; was 166)
 }
 
 local DEFAULTS = {
@@ -624,6 +624,51 @@ function ns.SampleRow()
     return ns.view[1] or ns.rows[1] or { dungeon = "Ragefire Chasm", dungeonShort = "RFC", leader = "Thrall" }
 end
 
+-- ------------------------------------------------------------ whispers already sent
+-- FreeLFGDB.sent[name] = time() of my last whisper to that player (account-wide, kept SENT_KEEP).
+-- Filled by Msg, and by CHAT_MSG_WHISPER_INFORM (the game confirms a whisper I sent: covers Custom).
+local SENT_KEEP = 3 * 3600
+local function Now() return (time and time()) or (os and os.time and os.time()) or 0 end
+local function NameKey(n)
+    if type(n) ~= "string" then return nil end
+    if issecretvalue and issecretvalue(n) then return nil end
+    local ok, k = pcall(function() return (n:gsub("%-.*$", "")):lower() end)   -- drop "-Realm"
+    if not ok or not k or k == "" then return nil end
+    return k
+end
+function ns.MarkSent(name)
+    local k = NameKey(name)
+    if not (k and db) then return end
+    if type(db.sent) ~= "table" then db.sent = {} end
+    db.sent[k] = Now()
+end
+-- seconds since my last whisper to `name`, or nil
+function ns.SentAgo(name)
+    local k = NameKey(name)
+    local t = k and db and type(db.sent) == "table" and db.sent[k]
+    if type(t) ~= "number" then return nil end
+    local d = Now() - t
+    if d < 0 or d > SENT_KEEP then return nil end
+    return d
+end
+-- 42s · 3m 07s (under 10 min) · 14m · 1h05
+function ns.SentText(sec)
+    if not sec then return "" end
+    sec = math.floor(sec)
+    if sec < 60 then return sec .. "s" end
+    local m = math.floor(sec / 60)
+    if m < 10 then return m .. "m " .. string.format("%02d", sec % 60) .. "s" end
+    if m < 60 then return m .. "m" end
+    return math.floor(m / 60) .. "h" .. string.format("%02d", m % 60)
+end
+local function PurgeSent()
+    if type(db.sent) ~= "table" then return end
+    local now = Now()
+    for k, t in pairs(db.sent) do
+        if type(t) ~= "number" or now - t > SENT_KEEP or now - t < 0 then db.sent[k] = nil end
+    end
+end
+
 -- ------------------------------------------------------------ actions (direct clicks)
 local lastMsg = 0
 function ns.Whisper(row)
@@ -638,6 +683,7 @@ function ns.Whisper(row)
     local ok = pcall(send, msg, "WHISPER", nil, row.leaderFull)
     if not ok then return false, "The game refused the whisper." end
     ns.lastSent = { to = row.leaderFull, msg = msg }
+    ns.MarkSent(row.leaderFull)
     return true, msg
 end
 
@@ -659,6 +705,7 @@ function ns.CustomWhisper(row)
         local eb = active()
         if eb then
             if start ~= "" and eb.Insert then eb:Insert(start) end
+            if not ns.informOK then ns.MarkSent(name) end   -- no confirmation event: count the click
             return true, start
         end
     end
@@ -672,6 +719,7 @@ function ns.CustomWhisper(row)
             local upd = ChatEdit_UpdateHeader or (ChatFrameUtil and ChatFrameUtil.UpdateHeader)
             if upd then pcall(upd, eb) end
             if start ~= "" and eb.Insert then eb:Insert(start) end
+            if not ns.informOK then ns.MarkSent(name) end   -- no confirmation event: count the click
             return true, start
         end
     end
@@ -725,7 +773,12 @@ ev:RegisterEvent("GROUP_ROSTER_UPDATE")
 for _, e in ipairs({ "LFG_LIST_SEARCH_RESULTS_RECEIVED", "LFG_LIST_SEARCH_RESULT_UPDATED", "LFG_LIST_SEARCH_FAILED", "LFG_LIST_AVAILABILITY_UPDATE" }) do
     pcall(ev.RegisterEvent, ev, e)   -- a name unknown to this client must not break us
 end
-ev:SetScript("OnEvent", function(_, event, arg1)
+ns.informOK = pcall(ev.RegisterEvent, ev, "CHAT_MSG_WHISPER_INFORM")   -- "To X: ..." = a whisper I sent
+ev:SetScript("OnEvent", function(_, event, arg1, arg2)
+    if event == "CHAT_MSG_WHISPER_INFORM" then
+        if db then pcall(ns.MarkSent, arg2) end
+        return
+    end
     if event == "ADDON_LOADED" then
         if arg1 ~= ADDON then
             if arg1 and arg1:find("^Blizzard_GroupFinder") or arg1 == "Blizzard_LookingForGroupUI" then
@@ -736,6 +789,7 @@ ev:SetScript("OnEvent", function(_, event, arg1)
         FreeLFGDB = type(FreeLFGDB) == "table" and FreeLFGDB or {}
         db = FreeLFGDB
         db.minimap = db.minimap or { hide = false }
+        PurgeSent()
         local LFP = LibStub and LibStub("LibFreeProfiles-1.0", true)
         if LFP then
             ns.profiles = LFP:New("FreeLFG", db, OnProfileSwitch, Prepare, nil, { perCharacter = true })

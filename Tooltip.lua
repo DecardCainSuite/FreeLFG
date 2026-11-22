@@ -261,6 +261,8 @@ function ns.ShowRowTooltip(owner, row)
     sep()
     caption("YOUR MESSAGE")
     wrapped(ns.ExpandTemplate(ns.P().template, row), 13, GREEN)
+    local ago = ns.SentAgo and ns.SentAgo(row.leaderFull)
+    if ago then wrapped("Already whispered " .. ns.SentText(ago) .. " ago", 11, C.accent) end
     local hint = FS(11, MUTED); hint:SetText(LEADER_ICON .. " leader  ·  Msg sends it  ·  Custom: type your own")
     want(W(hint) + 2 * PAD)
     add(function(y) hint:SetPoint("TOPLEFT", PAD, y - 2); return 14 end)
