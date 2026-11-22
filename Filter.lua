@@ -36,6 +36,20 @@ local VARS = {
     age = function(r) return r.ageMin or 0 end,
     delisted = function(r) return r.delisted and 1 or 0 end,
 }
+-- one counter per class: members of that class in the group, leader included (1.0.21).
+-- Counts only the members the game described; the others are in "unknown".
+local CLASS_VARS = {
+    warrior = "WARRIOR", paladin = "PALADIN", hunter = "HUNTER", rogue = "ROGUE", priest = "PRIEST",
+    shaman = "SHAMAN", mage = "MAGE", warlock = "WARLOCK", druid = "DRUID",
+    deathknight = "DEATHKNIGHT", dk = "DEATHKNIGHT", monk = "MONK", demonhunter = "DEMONHUNTER", dh = "DEMONHUNTER", evoker = "EVOKER",
+}
+for name, token in pairs(CLASS_VARS) do
+    local get = function(r) return (r.classCount and r.classCount[token]) or 0 end
+    VARS[name] = get
+    if name:len() > 2 then VARS[name .. "s"] = get end      -- "rogues >= 2" reads naturally too
+end
+VARS.unknown = function(r) return r.unknownClass or 0 end
+F.CLASS_VARS = CLASS_VARS
 F.VARS = VARS
 -- text fields -> function(row) returning a string
 local FIELDS = {
@@ -148,9 +162,12 @@ local function Parse(toks, src)
             local get = VARS[tok.v]
             if not get then
                 local names = {}
-                for k in pairs(VARS) do names[#names + 1] = k end
+                for k in pairs(VARS) do
+                    local base = k:gsub("s$", "")
+                    if not CLASS_VARS[k] and not CLASS_VARS[base] then names[#names + 1] = k end   -- classes listed once below
+                end
                 table.sort(names)
-                Fail("Unknown variable '" .. tok.v .. "' (use: " .. table.concat(names, ", ") .. ")", tok.pos)
+                Fail("Unknown variable '" .. tok.v .. "' (use: " .. table.concat(names, ", ") .. ", or a class: rogue, mage, priest...)", tok.pos)
             end
             return get
         elseif tok.t == "minus" then
@@ -312,8 +329,9 @@ end
 
 F.help = {
     "Variables: tank heal dps (in the group)  tankfree healfree dpsfree (open slots)  members free level age (min)  solo delisted",
+    "Classes: warrior paladin hunter rogue priest shaman mage warlock druid (members of that class)  unknown (class not given)",
     "Compare: >= <= > < = !=      Range: dps in 1..2   1 <= dps <= 2   dps between 1 and 2",
     "Combine: and  or  not  ( )   (also && || !)      Maths: tank + heal >= 2",
     "Text: name:\"abc\"  dungeon:\"razor\"  comment:\"fast\"  class:\"mage\"  state:\"relaxed\"",
-    "Example: (heal >= 1 or tank >= 1) and dps <= 1",
+    "Example: (heal >= 1 or tank >= 1) and dps <= 1      rogue >= 1 and healfree >= 1",
 }

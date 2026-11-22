@@ -386,9 +386,14 @@ local function BuildRow(id, idx)
     -- members: member 1 is the leader (class, level); a solo listing says which roles the player takes
     local m1
     r.memberInfo = {}      -- kept for the tooltip: the game does not always answer again on hover
+    r.classCount, r.unknownClass = {}, 0
     for i = 1, math.min(r.members, 40) do
         local m = MemberInfo(id, i)
         r.memberInfo[i] = m or false
+        -- class counters for the filter (rogue >= 1...), 1.0.21
+        local tok = m and type(m.class) == "string" and m.class:upper():gsub("[%s_]", "") or nil
+        if tok and tok ~= "" then r.classCount[tok] = (r.classCount[tok] or 0) + 1
+        else r.unknownClass = r.unknownClass + 1 end
         if m then
             if i == 1 or m.isLeader then
                 if not m1 or m.isLeader then m1 = m end
