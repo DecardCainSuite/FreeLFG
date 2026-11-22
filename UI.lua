@@ -205,13 +205,20 @@ local function Build()
     help:SetPoint("TOPRIGHT", -PAD, -40)
     help:SetScript("OnEnter", function(s)
         s.bg:SetVertexColor(unpack(C.hover))
+        -- 1.0.21: drawn like the group tooltip; the old GameTooltip text stays as the fallback
+        if ns.ShowSyntaxTooltip then
+            local ok, e = pcall(ns.ShowSyntaxTooltip, s)
+            if ok then return end
+            if ns.HideRowTooltip then ns.HideRowTooltip() end
+            if not s.warned then s.warned = true; ns.Print("syntax tooltip failed (" .. tostring(e) .. "), using the plain one.") end
+        end
         GameTooltip:SetOwner(s, "ANCHOR_BOTTOMLEFT")
         GameTooltip:AddLine("Filter syntax", C.accent[1], C.accent[2], C.accent[3])
         for _, l in ipairs(ns.Filter.help) do GameTooltip:AddLine(l, 0.85, 0.85, 0.9, true) end
         GameTooltip:AddLine("The filter only changes this table, never the game's search.", 0.55, 0.75, 0.55, true)
         GameTooltip:Show()
     end)
-    help:SetScript("OnLeave", function(s) s.bg:SetVertexColor(unpack(C.control)); GameTooltip:Hide() end)
+    help:SetScript("OnLeave", function(s) s.bg:SetVertexColor(unpack(C.control)); GameTooltip:Hide(); if ns.HideRowTooltip then ns.HideRowTooltip() end end)
     local err = kit:Text(p, 11, C.muted); err:SetPoint("TOPLEFT", PAD + 2, -68); err:SetPoint("TOPRIGHT", -PAD, -68)
     err:SetWordWrap(false)
 

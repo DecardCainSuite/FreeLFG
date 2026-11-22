@@ -331,7 +331,7 @@ F.help = {
     "Variables: tank heal dps (in the group)  tankfree healfree dpsfree (open slots)  members free level age (min)  solo delisted",
     "Classes: warrior paladin hunter rogue priest shaman mage warlock druid (members of that class)  unknown (class not given)",
     "Compare: >= <= > < = !=      Range: dps in 1..2   1 <= dps <= 2   dps between 1 and 2",
-    "Combine: and  or  not  ( )   (also && || !)      Maths: tank + heal >= 2",
+    "Combine: and  or  not  ( )   (also && |||| !)      Maths: tank + heal >= 2",
     "Text: name:\"abc\"  dungeon:\"razor\"  comment:\"fast\"  class:\"mage\"  state:\"relaxed\"",
     "Example: (heal >= 1 or tank >= 1) and dps <= 1      rogue >= 1 and healfree >= 1",
 }

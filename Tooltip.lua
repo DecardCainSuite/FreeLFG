@@ -286,3 +286,159 @@ function ns.ShowRowTooltip(owner, row)
     tip:Show()
     return tip
 end
+
+-- ------------------------------------------------------------ filter syntax (the "?" next to the filter box), 1.0.21
+-- Same frame and look as the group tooltip; fixed width, laid out in sections.
+local CODE = { 1, 0.74, 0.48 }          -- what you type
+local SYN_W = 500
+local CLASS_GRID = { "warrior", "paladin", "hunter", "rogue", "priest", "shaman", "mage", "warlock", "druid" }
+
+function ns.ShowSyntaxTooltip(owner)
+    if not tip then Make() end
+    shownOwner = nil                    -- not a row: RefreshRowTooltip must leave it alone
+    for i = 1, #fsPool do fsPool[i]:Hide() end
+    for i = 1, #txPool do txPool[i]:Hide() end
+    fsUsed, txUsed = 0, 0
+    local W0, L, R = SYN_W, PAD, SYN_W - PAD
+    local y = -10
+
+    local function text(t, size, color, x, yy, wrapW)
+        local fs = FS(size, color, wrapW and true or false); fs:SetText(t)
+        if wrapW then fs:SetWidth(wrapW) end
+        fs:SetPoint("TOPLEFT", x, yy)
+        return fs
+    end
+    local function sep()
+        local t = Tex({ 0.165, 0.173, 0.2, 1 }); t:SetHeight(1)
+        t:SetPoint("TOPLEFT", L, y - 5); t:SetPoint("TOPRIGHT", -PAD, y - 5)
+        y = y - 11
+    end
+    local function caption(t, right)
+        text(t, 11, C.accent, L, y)
+        if right then local f = FS(10, MUTED); f:SetText(right); f:SetPoint("TOPRIGHT", -PAD, y) end
+        y = y - 16
+    end
+    -- a small box with code in it (operators, keywords); returns its width
+    local function chip(t, x, yy)
+        local f = FS(12, CODE); f:SetText(t)
+        local w = math.max(22, W(f) + 12)
+        local bg = Tex(C.control); bg:SetSize(w, 16); bg:SetPoint("TOPLEFT", x, yy + 1)
+        f:SetPoint("CENTER", bg, "CENTER", 0, 0)
+        return w
+    end
+    -- rows of "code  description" in n columns
+    local function grid(pairs_, cols, codeW)
+        local colW = (W0 - 2 * PAD) / cols
+        for i, pr in ipairs(pairs_) do
+            local c = (i - 1) % cols
+            local x = L + c * colW
+            text(pr[1], 12, CODE, x, y)
+            text(pr[2], 11, DIM, x + codeW, y - 1)
+            if c == cols - 1 or i == #pairs_ then y = y - 16 end
+        end
+    end
+
+    -- header
+    text("Filter syntax", 15, C.text, L, y)
+    local r = FS(11, MUTED); r:SetText("live  ·  only this table"); r:SetPoint("TOPRIGHT", -PAD, y - 3)
+    y = y - 20
+    local sub = text("Type a rule: the table keeps the groups where it is true. Case does not matter.", 11, DIM, L, y, W0 - 2 * PAD)
+    y = y - H(sub, 13) - 4
+    sep()
+
+    -- roles: in the group / open slots
+    caption("ROLES", "number of players")
+    local X1, X2 = L + TAGW + 18, L + TAGW + 18 + 150
+    text("in the group", 10, MUTED, X1, y); text("open slots", 10, MUTED, X2, y)
+    y = y - 14
+    for _, rr in ipairs({ { "TANK", "tank", "tankfree" }, { "HEALER", "heal", "healfree", "healer" }, { "DAMAGER", "dps", "dpsfree", "damage" } }) do
+        local R0 = ROLE[rr[1]]
+        local bg = Tex(R0.bg); bg:SetSize(TAGW, 14); bg:SetPoint("TOPLEFT", L, y)
+        local tg = FS(10, R0.fg); tg:SetText(R0.label); tg:SetWidth(TAGW); tg:SetJustifyH("CENTER"); tg:SetPoint("CENTER", bg, "CENTER", 0, 0)
+        local a = text(rr[2], 12, CODE, X1, y)
+        if rr[4] then text("or " .. rr[4], 11, MUTED, X1 + W(a) + 8, y - 1) end
+        text(rr[3], 12, CODE, X2, y)
+        y = y - 18
+    end
+    y = y - 2
+    sep()
+
+    -- group
+    caption("GROUP")
+    grid({ { "members", "players in it" }, { "free", "open slots" },
+           { "level", "leader's level" }, { "age", "minutes listed" },
+           { "solo", "1 = a single player" }, { "delisted", "1 = no longer listed" } }, 2, 68)
+    y = y - 2
+    sep()
+
+    -- classes, in class colours
+    caption("CLASSES", "members of that class, leader included")
+    local colW = (W0 - 2 * PAD) / 3
+    for i, name in ipairs(CLASS_GRID) do
+        local c = (i - 1) % 3
+        local cr, cg, cb = ns.ClassColor(name:upper())
+        text(name, 12, { cr, cg, cb }, L + c * colW, y)
+        if c == 2 then y = y - 16 end
+    end
+    local hint = text("Plural works (rogues >= 2).  " .. Hex(CODE) .. "unknown|r = members whose class the game did not give.", 11, MUTED, L, y, W0 - 2 * PAD)
+    y = y - H(hint, 13) - 2
+    sep()
+
+    -- compare
+    caption("COMPARE")
+    local x = L
+    for _, op in ipairs({ ">=", "<=", ">", "<", "=", "!=" }) do x = x + chip(op, x, y) + 6 end
+    text("equal: = or ==   ·   not equal: != or <>", 11, MUTED, x + 8, y - 1)
+    y = y - 22
+    text("Ranges", 11, DIM, L, y - 1)
+    x = L + 58
+    for i, ex in ipairs({ "dps in 1..2", "1 <= dps <= 2", "dps between 1 and 2" }) do
+        local f = text(ex, 12, CODE, x, y)
+        x = x + W(f)
+        if i < 3 then local d = text("·", 12, MUTED, x + 8, y); x = x + 22 end
+    end
+    y = y - 18
+    sep()
+
+    -- combine
+    caption("COMBINE")
+    x = L
+    for _, kw in ipairs({ "and", "or", "not", "( )" }) do x = x + chip(kw, x, y) + 6 end
+    text("also  && |||| !     maths  + - *", 11, MUTED, x + 8, y - 1)
+    y = y - 22
+    local bare = text("A name alone means at least one:  " .. Hex(CODE) .. "rogue and healfree|r", 11, DIM, L, y - 1, W0 - 2 * PAD)
+    y = y - H(bare, 13) - 2
+    sep()
+
+    -- text fields
+    caption("TEXT", "contains, case ignored")
+    grid({ { 'name:"abc"', "leader's name" }, { 'dungeon:"zul"', "activity" },
+           { 'comment:"fast"', "title and comment" }, { 'class:"mage"', "leader's class" },
+           { 'state:"relaxed"', "state column" } }, 2, 104)
+    y = y - 2
+    sep()
+
+    -- examples
+    caption("EXAMPLES")
+    for _, ex in ipairs({
+        { "rogue >= 1 and healfree >= 1", "a rogue, room for a healer" },
+        { "(heal >= 1 or tank >= 1) and dps <= 2", "a tank or a healer, few DPS" },
+        { "tankfree and not delisted", "a tank slot, still listed" },
+        { "solo and level >= 40", "single players 40+" },
+        { 'dungeon:"zul" and age <= 10', "Zul'Farrak, listed < 10 min" },
+    }) do
+        text(ex[1], 12, GREEN, L, y)
+        local d = FS(11, MUTED); d:SetText(ex[2]); d:SetPoint("TOPRIGHT", -PAD, y - 1)
+        y = y - 16
+    end
+    y = y - 2
+    sep()
+    local foot = text("Only this table changes, never the game's search. An invalid rule shows all groups.", 11, GREEN, L, y, W0 - 2 * PAD)
+    y = y - H(foot, 13)
+
+    tip:SetSize(W0, math.floor(-y + 9))
+    tip:ClearAllPoints()
+    tip:SetPoint("TOPRIGHT", owner, "BOTTOMRIGHT", 0, -4)
+    tip:Show()
+    return tip
+end
